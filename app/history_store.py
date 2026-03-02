@@ -47,6 +47,20 @@ class HistoryStore:
 
         return True
 
+    def clear(self) -> int:
+        items = self._read_all()
+        removed = 0
+
+        for item in items:
+            audio_name = item.audio_url.rsplit("/", 1)[-1]
+            audio_path = self.output_dir / audio_name
+            if audio_path.exists() and audio_path.is_file():
+                audio_path.unlink(missing_ok=True)
+            removed += 1
+
+        self._write_all([])
+        return removed
+
     def _read_all(self) -> list[HistoryItem]:
         if not self.history_file.exists():
             return []

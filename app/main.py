@@ -74,7 +74,7 @@ PRESETS: list[PresetItem] = [
 app = FastAPI(
     title="Voxa Studio",
     description="Open-source text-to-speech studio inspired by voicebox.",
-    version="0.3.0",
+    version="0.3.1",
 )
 
 app.add_middleware(
@@ -134,6 +134,12 @@ async def delete_history_item(item_id: str) -> dict[str, str]:
         raise HTTPException(status_code=404, detail=f"History item '{item_id}' not found")
 
     return {"deleted": item_id}
+
+
+@app.delete("/api/history")
+async def clear_history() -> dict[str, int]:
+    removed = history_store.clear()
+    return {"removed": removed}
 
 
 def _text_preview(text: str, limit: int = 96) -> str:

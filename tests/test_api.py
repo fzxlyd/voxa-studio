@@ -24,6 +24,11 @@ class FakeHistoryStore:
         self.items = [item for item in self.items if item.id != item_id]
         return len(self.items) < before
 
+    def clear(self) -> int:
+        removed = len(self.items)
+        self.items = []
+        return removed
+
 
 async def _fake_voices(
     locale: str | None = None,
@@ -75,7 +80,7 @@ def test_health() -> None:
     response = client.get("/api/health")
     assert response.status_code == 200
     assert response.json()["status"] == "ok"
-    assert response.json()["version"] == "0.3.0"
+    assert response.json()["version"] == "0.3.1"
 
 
 def test_get_voices_with_filters(monkeypatch) -> None:
@@ -182,6 +187,26 @@ def test_history_list_and_delete(monkeypatch) -> None:
 
     missing_response = client.delete(f"/api/history/{item_id}")
     assert missing_response.status_code == 404
+
+
+def test_history_clear(monkeypatch) -> None:
+    _patch_dependencies(monkeypatch)
+    client.post(
+        "/api/speak",
+        json={"text": "item one", "voice": "en-US-AriaNeural", "rate": 0, "pitch": 0, "format": "mp3"},
+    )
+    client.post(
+        "/api/speak",
+        json={"text": "item two", "voice": "en-US-AriaNeural", "rate": 0, "pitch": 0, "format": "mp3"},
+    )
+
+    clear_response = client.delete("/api/history")
+    assert clear_response.status_code == 200
+    assert clear_response.json()["removed"] == 2
+
+    empty_response = client.get("/api/history")
+    assert empty_response.status_code == 200
+    assert empty_response.json() == []
 
 
 def test_speak_unknown_voice(monkeypatch) -> None:

@@ -19,6 +19,7 @@ const charsCount = document.getElementById("chars-count");
 const estimate = document.getElementById("estimate");
 const batchLines = document.getElementById("batch-lines");
 const batchChars = document.getElementById("batch-chars");
+const voiceSummary = document.getElementById("voice-summary");
 
 const presetsContainer = document.getElementById("presets");
 const submitButton = document.getElementById("submit");
@@ -37,15 +38,22 @@ const audioPlayer = document.getElementById("audio-player");
 const downloadLink = document.getElementById("download");
 const copyLinkButton = document.getElementById("copy-link");
 
+const batchProgress = document.getElementById("batch-progress");
+const batchProgressLabel = document.getElementById("batch-progress-label");
+const batchProgressFill = document.getElementById("batch-progress-fill");
 const batchReport = document.getElementById("batch-report");
+
 const historyList = document.getElementById("history-list");
+const clearHistoryButton = document.getElementById("clear-history");
 const apiPreview = document.getElementById("api-preview");
 const copyCurlButton = document.getElementById("copy-curl");
 
 const state = {
   mode: "single",
   history: [],
+  loadedVoices: [],
   currentAudioUrl: "",
+  progressTimer: null,
 };
 
 const setStatus = (message, tone = "neutral") => {
@@ -94,11 +102,16 @@ const updateSingleMetrics = () => {
   estimate.textContent = `~${sec} sec`;
 };
 
-const updateBatchMetrics = () => {
-  const rows = batchTextInput.value
+const parseBatchLines = () => {
+  return batchTextInput.value
     .split("\n")
     .map((row) => row.trim())
-    .filter(Boolean);
+    .filter(Boolean)
+    .slice(0, 20);
+};
+
+const updateBatchMetrics = () => {
+  const rows = parseBatchLines();
   const charTotal = rows.reduce((sum, row) => sum + row.length, 0);
   batchLines.textContent = `${rows.length} lines`;
   batchChars.textContent = `${charTotal} chars`;
@@ -115,14 +128,8 @@ const currentPayload = () => {
     };
   }
 
-  const texts = batchTextInput.value
-    .split("\n")
-    .map((row) => row.trim())
-    .filter(Boolean)
-    .slice(0, 20);
-
   return {
-    texts,
+    texts: parseBatchLines(),
     voice: voiceSelect.value || undefined,
     rate: Number.parseInt(rateInput.value, 10),
     pitch: Number.parseInt(pitchInput.value, 10),
@@ -131,18 +138,16 @@ const currentPayload = () => {
 };
 
 const renderApiPreview = () => {
+  const payload = currentPayload();
   if (state.mode === "single") {
-    const payload = currentPayload();
     apiPreview.textContent = `curl -X POST ${window.location.origin}/api/speak \\
   -H "Content-Type: application/json" \\
   -d '${JSON.stringify(payload, null, 2)}'`;
-    return;
-  }
-
-  const payload = currentPayload();
-  apiPreview.textContent = `curl -X POST ${window.location.origin}/api/speak/batch \\
+  } else {
+    apiPreview.textContent = `curl -X POST ${window.location.origin}/api/speak/batch \\
   -H "Content-Type: application/json" \\
   -d '${JSON.stringify(payload, null, 2)}'`;
+  }
 };
 
 const applyMode = (mode) => {
@@ -156,14 +161,18 @@ const applyMode = (mode) => {
 
   singleEditor.classList.toggle("active", mode === "single");
   batchEditor.classList.toggle("active", mode === "batch");
-
   submitButton.textContent = mode === "single" ? "Generate" : "Generate Batch";
+
+  if (mode === "single") {
+    batchReport.classList.add("hidden");
+    batchProgress.classList.add("hidden");
+  }
+
   renderApiPreview();
 };
 
 const buildVoiceQuery = () => {
   const params = new URLSearchParams();
-
   if (searchInput.value.trim()) {
     params.set("search", searchInput.value.trim());
   }
@@ -173,12 +182,23 @@ const buildVoiceQuery = () => {
   if (genderSelect.value.trim()) {
     params.set("gender", genderSelect.value.trim());
   }
-
   params.set("limit", "300");
   return params.toString();
 };
 
+const updateVoiceSummary = () => {
+  const selected = state.loadedVoices.find((voice) => voice.short_name === voiceSelect.value);
+  if (!selected) {
+    voiceSummary.textContent = "No voice selected.";
+    return;
+  }
+
+  const gender = selected.gender ? ` • ${selected.gender}` : "";
+  voiceSummary.textContent = `${selected.short_name} • ${selected.locale}${gender}`;
+};
+
 const populateVoiceSelect = (voices, preferred = "") => {
+  state.loadedVoices = voices;
   voiceSelect.innerHTML = "";
 
   if (!voices.length) {
@@ -186,6 +206,7 @@ const populateVoiceSelect = (voices, preferred = "") => {
     option.value = "";
     option.textContent = "No voices found";
     voiceSelect.append(option);
+    updateVoiceSummary();
     return;
   }
 
@@ -198,6 +219,7 @@ const populateVoiceSelect = (voices, preferred = "") => {
 
   const exists = voices.some((voice) => voice.short_name === preferred);
   voiceSelect.value = exists ? preferred : voices[0].short_name;
+  updateVoiceSummary();
 };
 
 const loadVoices = async () => {
@@ -259,6 +281,44 @@ const setCurrentOutput = (item, message = "") => {
   }
 };
 
+const stopProgressTimer = () => {
+  if (state.progressTimer) {
+    clearInterval(state.progressTimer);
+    state.progressTimer = null;
+  }
+};
+
+const startBatchProgress = (total) => {
+  stopProgressTimer();
+  batchReport.classList.add("hidden");
+  batchProgress.classList.remove("hidden");
+
+  let progress = 4;
+  const step = Math.max(2, Math.round(80 / Math.max(1, total * 4)));
+
+  batchProgressFill.style.width = `${progress}%`;
+  batchProgressLabel.textContent = `Processing 1/${total} lines...`;
+
+  state.progressTimer = setInterval(() => {
+    progress = Math.min(92, progress + step);
+    const inferred = Math.max(1, Math.min(total, Math.round((progress / 100) * total)));
+    batchProgressFill.style.width = `${progress}%`;
+    batchProgressLabel.textContent = `Processing ${inferred}/${total} lines...`;
+  }, 220);
+};
+
+const completeBatchProgress = (label, keepVisible = false) => {
+  stopProgressTimer();
+  batchProgressFill.style.width = "100%";
+  batchProgressLabel.textContent = label;
+
+  if (!keepVisible) {
+    setTimeout(() => {
+      batchProgress.classList.add("hidden");
+    }, 900);
+  }
+};
+
 const renderBatchReport = (batchResult) => {
   if (!batchResult) {
     batchReport.innerHTML = "";
@@ -266,9 +326,27 @@ const renderBatchReport = (batchResult) => {
     return;
   }
 
+  const successRate = batchResult.total > 0 ? Math.round((batchResult.success / batchResult.total) * 100) : 0;
+
   const summary = document.createElement("p");
   summary.className = "batch-summary";
-  summary.textContent = `Batch finished in ${batchResult.duration_ms}ms. Success ${batchResult.success}/${batchResult.total}.`;
+  summary.textContent = `Batch finished in ${batchResult.duration_ms}ms.`;
+
+  const metrics = document.createElement("div");
+  metrics.className = "batch-metrics";
+  metrics.innerHTML = `
+    <span>${batchResult.success} success</span>
+    <span>${batchResult.failed} failed</span>
+    <span>${successRate}% pass rate</span>
+    <span>${batchResult.total} total</span>
+  `;
+
+  const meter = document.createElement("div");
+  meter.className = "batch-meter";
+  const meterFill = document.createElement("span");
+  meterFill.className = "batch-meter-fill";
+  meterFill.style.width = `${successRate}%`;
+  meter.append(meterFill);
 
   const list = document.createElement("ul");
   list.className = "batch-list";
@@ -276,6 +354,7 @@ const renderBatchReport = (batchResult) => {
   for (const item of batchResult.items) {
     const li = document.createElement("li");
     li.className = "batch-item";
+    li.dataset.state = item.success ? "ok" : "fail";
 
     const badge = document.createElement("span");
     badge.className = `badge ${item.success ? "ok" : "fail"}`;
@@ -304,7 +383,7 @@ const renderBatchReport = (batchResult) => {
   }
 
   batchReport.innerHTML = "";
-  batchReport.append(summary, list);
+  batchReport.append(summary, metrics, meter, list);
   batchReport.classList.remove("hidden");
 };
 
@@ -313,8 +392,8 @@ const renderHistory = () => {
 
   if (!state.history.length) {
     const empty = document.createElement("li");
-    empty.className = "history-item";
-    empty.textContent = "No renders yet.";
+    empty.className = "history-item empty";
+    empty.textContent = "No renders yet. Create your first voice clip.";
     historyList.append(empty);
     return;
   }
@@ -344,6 +423,12 @@ const renderHistory = () => {
     play.dataset.id = item.id;
     play.textContent = "Play";
 
+    const useText = document.createElement("button");
+    useText.type = "button";
+    useText.dataset.action = "use";
+    useText.dataset.id = item.id;
+    useText.textContent = "Use Text";
+
     const download = document.createElement("a");
     download.href = item.audio_url;
     download.download = `${item.id}.mp3`;
@@ -361,7 +446,7 @@ const renderHistory = () => {
     remove.dataset.id = item.id;
     remove.textContent = "Delete";
 
-    actions.append(play, download, copy, remove);
+    actions.append(play, useText, download, copy, remove);
     li.append(top, meta, actions);
     historyList.append(li);
   }
@@ -412,6 +497,7 @@ const generateSingle = async () => {
 
   setCurrentOutput(data);
   renderBatchReport(null);
+  batchProgress.classList.add("hidden");
   await Promise.all([loadHistory(), loadStats()]);
   setStatus(`Generated with ${data.voice}.`, "ok");
 };
@@ -422,6 +508,8 @@ const generateBatch = async () => {
     throw new Error("Batch mode requires at least one non-empty line.");
   }
 
+  startBatchProgress(payload.texts.length);
+
   const response = await fetch("/api/speak/batch", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -430,9 +518,11 @@ const generateBatch = async () => {
 
   const data = await response.json();
   if (!response.ok) {
+    completeBatchProgress("Batch failed.", true);
     throw new Error(data.detail || "Batch generation failed");
   }
 
+  completeBatchProgress(`Completed ${data.success}/${data.total} lines.`);
   renderBatchReport(data);
 
   const firstSuccess = data.items.find((item) => item.success && item.result);
@@ -465,6 +555,7 @@ form.addEventListener("submit", async (event) => {
     setStatus(error.message || "Generation failed", "error");
   } finally {
     submitButton.disabled = false;
+    stopProgressTimer();
   }
 });
 
@@ -499,7 +590,10 @@ pitchInput.addEventListener("input", () => {
   renderApiPreview();
 });
 
-voiceSelect.addEventListener("change", renderApiPreview);
+voiceSelect.addEventListener("change", () => {
+  updateVoiceSummary();
+  renderApiPreview();
+});
 searchInput.addEventListener("input", reloadVoicesDebounced);
 localeInput.addEventListener("input", reloadVoicesDebounced);
 genderSelect.addEventListener("change", reloadVoicesDebounced);
@@ -519,7 +613,13 @@ resetFiltersButton.addEventListener("click", async () => {
   searchInput.value = "";
   localeInput.value = "";
   genderSelect.value = "";
-  await loadVoices();
+
+  try {
+    await loadVoices();
+    setStatus("Voice filters reset.", "ok");
+  } catch (error) {
+    setStatus(error.message || "Reset failed", "error");
+  }
 });
 
 clearButton.addEventListener("click", () => {
@@ -554,7 +654,11 @@ presetsContainer.addEventListener("click", async (event) => {
 
   if (presetLocale) {
     localeInput.value = presetLocale;
-    await loadVoices();
+    try {
+      await loadVoices();
+    } catch (error) {
+      setStatus(error.message || "Voice refresh failed", "error");
+    }
   }
 
   renderApiPreview();
@@ -584,6 +688,20 @@ historyList.addEventListener("click", async (event) => {
     return;
   }
 
+  if (action === "use") {
+    if (state.mode === "single") {
+      textInput.value = item.text_preview;
+      updateSingleMetrics();
+    } else {
+      const current = batchTextInput.value.trim();
+      batchTextInput.value = current ? `${current}\n${item.text_preview}` : item.text_preview;
+      updateBatchMetrics();
+    }
+    renderApiPreview();
+    setStatus("History preview inserted into editor.", "ok");
+    return;
+  }
+
   if (action === "copy") {
     try {
       await copyText(new URL(item.audio_url, window.location.origin).href);
@@ -609,6 +727,29 @@ historyList.addEventListener("click", async (event) => {
   }
 });
 
+clearHistoryButton.addEventListener("click", async () => {
+  if (!state.history.length) {
+    setStatus("History is already empty.", "ok");
+    return;
+  }
+
+  clearHistoryButton.disabled = true;
+  try {
+    const response = await fetch("/api/history", { method: "DELETE" });
+    const payload = await response.json();
+    if (!response.ok) {
+      throw new Error(payload.detail || "Clear failed");
+    }
+
+    await Promise.all([loadHistory(), loadStats()]);
+    setStatus(`Cleared ${payload.removed} history item(s).`, "ok");
+  } catch (error) {
+    setStatus(error.message || "Clear failed", "error");
+  } finally {
+    clearHistoryButton.disabled = false;
+  }
+});
+
 copyLinkButton.addEventListener("click", async () => {
   if (!state.currentAudioUrl) {
     setStatus("No active output to copy.", "error");
@@ -629,6 +770,15 @@ copyCurlButton.addEventListener("click", async () => {
     setStatus("cURL copied.", "ok");
   } catch {
     setStatus("Copy failed.", "error");
+  }
+});
+
+document.addEventListener("keydown", (event) => {
+  if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
+    event.preventDefault();
+    if (!submitButton.disabled) {
+      form.requestSubmit();
+    }
   }
 });
 

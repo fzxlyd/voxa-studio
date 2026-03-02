@@ -13,8 +13,9 @@ This project gives you a deployable baseline with:
 - Single + batch MP3 generation endpoints
 - Voice search/filter (`search`, `locale`, `gender`, `limit`)
 - Preset script templates
-- Persistent render history (replay / copy link / delete)
+- Persistent render history (replay / copy link / delete / clear-all)
 - Batch report panel (success/failure per line)
+- Batch progress indicator and pass-rate meter
 - Runtime stats panel
 - Docker support
 - GitHub Actions CI
@@ -30,6 +31,7 @@ This project gives you a deployable baseline with:
 - `GET /api/presets` built-in script presets
 - `GET /api/history` list generation history
 - `DELETE /api/history/{id}` delete a history record and audio file
+- `DELETE /api/history` clear all history records and generated files
 - `GET /api/stats` aggregate counters for dashboard
 - `POST /api/speak` synthesize speech and store history
 - `POST /api/speak/batch` generate up to 20 lines in one request

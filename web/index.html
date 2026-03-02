@@ -109,6 +109,7 @@
                 <button id="refresh-voices" type="button" class="btn ghost">Refresh</button>
                 <button id="reset-filters" type="button" class="btn ghost">Reset Filters</button>
               </div>
+              <p id="voice-summary" class="voice-summary">No voice selected.</p>
             </div>
 
             <div class="slider-grid">
@@ -126,6 +127,7 @@
               <button id="submit" type="submit" class="btn primary">Generate</button>
               <button id="clear-input" type="button" class="btn ghost">Clear</button>
             </div>
+            <p class="shortcut-hint">Shortcut: <kbd>Ctrl</kbd>/<kbd>⌘</kbd> + <kbd>Enter</kbd> to generate.</p>
           </form>
 
           <p id="status" class="status" role="status" aria-live="polite">Initializing studio...</p>
@@ -152,13 +154,20 @@
             </div>
           </div>
 
+          <div id="batch-progress" class="batch-progress hidden" aria-live="polite">
+            <p id="batch-progress-label">Preparing batch...</p>
+            <div class="progress-track"><span id="batch-progress-fill"></span></div>
+          </div>
           <div id="batch-report" class="batch-report hidden" aria-live="polite"></div>
         </section>
 
         <section class="card history-card">
           <div class="card-head">
             <h2>Recent Renders</h2>
-            <span class="card-note">Latest 20</span>
+            <div class="history-head-actions">
+              <span class="card-note">Latest 20</span>
+              <button id="clear-history" type="button" class="link-btn danger">Clear All</button>
+            </div>
           </div>
           <ul id="history-list" class="history-list" aria-label="Render history"></ul>
         </section>
