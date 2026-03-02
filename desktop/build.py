@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import os
+import platform
 import shutil
 import subprocess
 import sys
@@ -28,6 +30,11 @@ def _pyinstaller_cmd() -> list[str]:
         "desktop/launcher.py",
     ]
 
+    target_arch = os.getenv("VOXA_TARGET_ARCH", "").strip()
+    if sys.platform == "darwin" and target_arch:
+        cmd.insert(4, "--target-arch")
+        cmd.insert(5, target_arch)
+
     if sys.platform.startswith("win"):
         cmd.insert(4, "--onefile")
 
@@ -42,22 +49,25 @@ def _zip_path(src: Path, archive: Path) -> Path:
 
 def _package_release() -> Path:
     RELEASE.mkdir(parents=True, exist_ok=True)
+    arch_label = os.getenv("VOXA_ARCH_LABEL", "").strip()
+    machine = platform.machine().lower()
+    normalized_arch = arch_label or machine or "unknown"
 
     if sys.platform == "darwin":
         app_bundle = DIST / f"{APP_NAME}.app"
         if not app_bundle.exists():
             raise FileNotFoundError(f"Expected macOS app bundle at {app_bundle}")
-        return _zip_path(app_bundle, RELEASE / "VoxaStudio-macOS.zip")
+        return _zip_path(app_bundle, RELEASE / f"VoxaStudio-macOS-{normalized_arch}.zip")
 
     if sys.platform.startswith("win"):
         onefile_exe = DIST / f"{APP_NAME}.exe"
         if onefile_exe.exists():
-            return _zip_path(onefile_exe, RELEASE / "VoxaStudio-windows.zip")
+            return _zip_path(onefile_exe, RELEASE / f"VoxaStudio-windows-{normalized_arch}.zip")
 
         folder_app = DIST / APP_NAME
         if not folder_app.exists():
             raise FileNotFoundError("Expected Windows executable or app folder in dist/")
-        return _zip_path(folder_app, RELEASE / "VoxaStudio-windows.zip")
+        return _zip_path(folder_app, RELEASE / f"VoxaStudio-windows-{normalized_arch}.zip")
 
     raise RuntimeError("Desktop packaging script currently supports macOS and Windows only")
 

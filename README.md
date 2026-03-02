@@ -128,8 +128,9 @@ render blueprint launch
 
 Desktop binaries are published as release assets:
 
-- `VoxaStudio-macOS.zip`
-- `VoxaStudio-windows.zip`
+- `VoxaStudio-macOS-arm64.zip`
+- `VoxaStudio-macOS-x64.zip`
+- `VoxaStudio-windows-x64.zip`
 
 When a GitHub release is published, `.github/workflows/desktop-release.yml` builds both targets and uploads the assets automatically.
 

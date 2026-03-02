@@ -75,7 +75,7 @@ PRESETS: list[PresetItem] = [
 app = FastAPI(
     title="Voxa Studio",
     description="Open-source text-to-speech studio inspired by voicebox.",
-    version="0.4.0",
+    version="0.4.1",
 )
 
 app.add_middleware(
