@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Voicebox Open Lite</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/web/styles.css" />
+  </head>
+  <body>
+    <div class="backdrop"></div>
+    <main class="shell">
+      <section class="panel">
+        <header>
+          <p class="badge">Open Source Starter</p>
+          <h1>Voicebox Open Lite</h1>
+          <p class="subtitle">A fast, deployable TTS project inspired by voicebox.</p>
+        </header>
+
+        <form id="tts-form">
+          <label for="text">Text</label>
+          <textarea id="text" name="text" rows="6" maxlength="1000" required placeholder="Type what you want to speak..."></textarea>
+
+          <div class="row">
+            <div>
+              <label for="voice">Voice</label>
+              <select id="voice" name="voice"></select>
+            </div>
+            <div>
+              <label for="locale">Locale Filter</label>
+              <input id="locale" name="locale" type="text" placeholder="en-US" maxlength="10" />
+            </div>
+          </div>
+
+          <div class="row sliders">
+            <div>
+              <label for="rate">Rate: <span id="rate-value">0</span>%</label>
+              <input id="rate" name="rate" type="range" min="-100" max="100" value="0" />
+            </div>
+            <div>
+              <label for="pitch">Pitch: <span id="pitch-value">0</span>Hz</label>
+              <input id="pitch" name="pitch" type="range" min="-50" max="50" value="0" />
+            </div>
+          </div>
+
+          <button id="submit" type="submit">Generate Audio</button>
+        </form>
+
+        <section id="result" class="result hidden">
+          <p class="result-title">Output</p>
+          <audio id="audio-player" controls></audio>
+          <a id="download" download="voicebox-output.mp3">Download MP3</a>
+        </section>
+
+        <p id="status" class="status">Loading voices...</p>
+      </section>
+    </main>
+
+    <script src="/web/app.js" type="module"></script>
+  </body>
+</html>
