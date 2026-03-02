@@ -2,7 +2,7 @@
 
 Open-source text-to-speech starter inspired by [jamiepine/voicebox](https://github.com/jamiepine/voicebox).
 
-[![CI](https://github.com/fzxlyd/voicebox-open-lite/actions/workflows/ci.yml/badge.svg)](https://github.com/fzxlyd/voicebox-open-lite/actions/workflows/ci.yml)
+[![CI](https://github.com/fzxlyd/voxa-studio/actions/workflows/ci.yml/badge.svg)](https://github.com/fzxlyd/voxa-studio/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](./LICENSE)
 [![Python 3.11](https://img.shields.io/badge/python-3.11-blue.svg)](https://www.python.org/)
 
@@ -96,7 +96,7 @@ docker run --rm -p 8000:8000 voxa-studio
 
 ## Deploy
 
-[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/fzxlyd/voicebox-open-lite)
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/fzxlyd/voxa-studio)
 
 Or deploy with Render Blueprint:
 
