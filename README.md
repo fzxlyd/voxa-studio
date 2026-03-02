@@ -2,6 +2,10 @@
 
 Open-source text-to-speech starter inspired by [jamiepine/voicebox](https://github.com/jamiepine/voicebox).
 
+[![CI](https://github.com/fzxlyd/voicebox-open-lite/actions/workflows/ci.yml/badge.svg)](https://github.com/fzxlyd/voicebox-open-lite/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](./LICENSE)
+[![Python 3.11](https://img.shields.io/badge/python-3.11-blue.svg)](https://www.python.org/)
+
 This project gives you a deployable baseline with:
 
 - FastAPI backend
@@ -9,6 +13,10 @@ This project gives you a deployable baseline with:
 - MP3 generation endpoint
 - Docker support
 - GitHub Actions CI
+
+## UI Preview
+
+![Voicebox Open Lite demo](output/playwright/demo.png)
 
 ## Demo Features
 
@@ -74,11 +82,23 @@ docker build -t voicebox-open-lite .
 docker run --rm -p 8000:8000 voicebox-open-lite
 ```
 
+## Deploy
+
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/fzxlyd/voicebox-open-lite)
+
+Or deploy with Render Blueprint:
+
+```bash
+render blueprint launch
+```
+
 ## Project Layout
 
 ```text
 .
 ├── app/
+├── output/playwright/
+├── render.yaml
 ├── web/
 ├── tests/
 └── .github/workflows/ci.yml
