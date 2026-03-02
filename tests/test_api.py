@@ -54,12 +54,19 @@ async def _fake_speech(payload, output_path):
     return payload.voice or "en-US-AriaNeural"
 
 
-def _patch_dependencies(monkeypatch) -> FakeHistoryStore:
+async def _fake_speech_fail_some(payload, output_path):
+    if "fail" in payload.text.lower():
+        raise RuntimeError("simulated failure")
+    output_path.write_bytes(b"fake-mp3")
+    return payload.voice or "en-US-AriaNeural"
+
+
+def _patch_dependencies(monkeypatch, with_fail: bool = False) -> FakeHistoryStore:
     from app import main
 
     fake_store = FakeHistoryStore()
     monkeypatch.setattr(main, "list_available_voices", _fake_voices)
-    monkeypatch.setattr(main, "synthesize_speech", _fake_speech)
+    monkeypatch.setattr(main, "synthesize_speech", _fake_speech_fail_some if with_fail else _fake_speech)
     monkeypatch.setattr(main, "history_store", fake_store)
     return fake_store
 
@@ -68,7 +75,7 @@ def test_health() -> None:
     response = client.get("/api/health")
     assert response.status_code == 200
     assert response.json()["status"] == "ok"
-    assert response.json()["version"] == "0.2.1"
+    assert response.json()["version"] == "0.3.0"
 
 
 def test_get_voices_with_filters(monkeypatch) -> None:
@@ -103,6 +110,51 @@ def test_speak_success(monkeypatch) -> None:
     assert data["locale"] == "en-US"
     assert data["characters"] == 11
     assert data["audio_url"].startswith("/audio/")
+
+
+def test_batch_speak_success(monkeypatch) -> None:
+    _patch_dependencies(monkeypatch)
+
+    response = client.post(
+        "/api/speak/batch",
+        json={
+            "texts": ["Line one", "Line two"],
+            "voice": "en-US-AriaNeural",
+            "rate": 0,
+            "pitch": 0,
+            "format": "mp3",
+        },
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["total"] == 2
+    assert payload["success"] == 2
+    assert payload["failed"] == 0
+    assert payload["items"][0]["success"] is True
+    assert payload["items"][0]["result"]["audio_url"].startswith("/audio/")
+
+
+def test_batch_partial_failure(monkeypatch) -> None:
+    _patch_dependencies(monkeypatch, with_fail=True)
+
+    response = client.post(
+        "/api/speak/batch",
+        json={
+            "texts": ["normal line", "this should fail", "another normal"],
+            "voice": "en-US-AriaNeural",
+            "rate": 0,
+            "pitch": 0,
+            "format": "mp3",
+        },
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["total"] == 3
+    assert payload["success"] == 2
+    assert payload["failed"] == 1
+    assert any(not item["success"] for item in payload["items"])
 
 
 def test_history_list_and_delete(monkeypatch) -> None:
@@ -149,6 +201,17 @@ def test_speak_empty_text(monkeypatch) -> None:
     response = client.post(
         "/api/speak",
         json={"text": "   ", "voice": "en-US-AriaNeural", "rate": 0, "pitch": 0, "format": "mp3"},
+    )
+
+    assert response.status_code == 422
+
+
+def test_batch_empty_payload(monkeypatch) -> None:
+    _patch_dependencies(monkeypatch)
+
+    response = client.post(
+        "/api/speak/batch",
+        json={"texts": ["   ", ""], "voice": "en-US-AriaNeural", "rate": 0, "pitch": 0, "format": "mp3"},
     )
 
     assert response.status_code == 422

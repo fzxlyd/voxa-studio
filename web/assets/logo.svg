@@ -1,15 +1,15 @@
 <svg width="332" height="92" viewBox="0 0 332 92" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Voxa Studio">
   <defs>
-    <linearGradient id="vb-mark" x1="6" y1="6" x2="84" y2="84" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#3EECC4"/>
-      <stop offset="1" stop-color="#37A0FF"/>
+    <linearGradient id="voxa-mark" x1="5" y1="6" x2="85" y2="86" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#DA5D1B"/>
+      <stop offset="1" stop-color="#2762D6"/>
     </linearGradient>
   </defs>
 
-  <rect x="5" y="5" width="82" height="82" rx="22" fill="#0B1021"/>
-  <rect x="5" y="5" width="82" height="82" rx="22" stroke="url(#vb-mark)" stroke-width="2"/>
-  <path d="M24 58V34M35 66V26M46 60V32M57 68V24M68 55V37" stroke="url(#vb-mark)" stroke-width="5" stroke-linecap="round"/>
+  <rect x="5" y="5" width="82" height="82" rx="24" fill="#FFFFFF"/>
+  <rect x="5" y="5" width="82" height="82" rx="24" stroke="url(#voxa-mark)" stroke-width="2"/>
+  <path d="M24 57V35M35 66V26M46 60V32M57 68V24M68 54V38" stroke="url(#voxa-mark)" stroke-width="5" stroke-linecap="round"/>
 
-  <text x="104" y="47" fill="#EEF5FF" font-size="33" font-family="'Sora', 'IBM Plex Sans', sans-serif" font-weight="700" letter-spacing="0.4">Voxa</text>
-  <text x="104" y="74" fill="#A6BADF" font-size="20" font-family="'IBM Plex Sans', sans-serif" font-weight="600" letter-spacing="1.6">STUDIO</text>
+  <text x="102" y="47" fill="#18233E" font-size="34" font-family="'Epilogue', 'Instrument Sans', sans-serif" font-weight="700" letter-spacing="0.4">Voxa</text>
+  <text x="103" y="74" fill="#4E5D7E" font-size="20" font-family="'Instrument Sans', sans-serif" font-weight="700" letter-spacing="1.7">STUDIO</text>
 </svg>

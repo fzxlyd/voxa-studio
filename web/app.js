@@ -1,20 +1,32 @@
 const form = document.getElementById("tts-form");
+const modeSingleButton = document.getElementById("mode-single");
+const modeBatchButton = document.getElementById("mode-batch");
+const singleEditor = document.getElementById("single-editor");
+const batchEditor = document.getElementById("batch-editor");
+
 const textInput = document.getElementById("text");
+const batchTextInput = document.getElementById("batch-text");
 const voiceSelect = document.getElementById("voice");
 const searchInput = document.getElementById("search");
 const localeInput = document.getElementById("locale");
 const genderSelect = document.getElementById("gender");
 const rateInput = document.getElementById("rate");
 const pitchInput = document.getElementById("pitch");
+
 const rateValue = document.getElementById("rate-value");
 const pitchValue = document.getElementById("pitch-value");
-const statusText = document.getElementById("status");
-const submitButton = document.getElementById("submit");
-const refreshVoicesButton = document.getElementById("refresh-voices");
-const presetsContainer = document.getElementById("presets");
-
 const charsCount = document.getElementById("chars-count");
 const estimate = document.getElementById("estimate");
+const batchLines = document.getElementById("batch-lines");
+const batchChars = document.getElementById("batch-chars");
+
+const presetsContainer = document.getElementById("presets");
+const submitButton = document.getElementById("submit");
+const clearButton = document.getElementById("clear-input");
+const refreshVoicesButton = document.getElementById("refresh-voices");
+const resetFiltersButton = document.getElementById("reset-filters");
+
+const statusText = document.getElementById("status");
 const loadedVoices = document.getElementById("loaded-voices");
 const historyCount = document.getElementById("history-count");
 const totalChars = document.getElementById("total-chars");
@@ -25,23 +37,25 @@ const audioPlayer = document.getElementById("audio-player");
 const downloadLink = document.getElementById("download");
 const copyLinkButton = document.getElementById("copy-link");
 
+const batchReport = document.getElementById("batch-report");
 const historyList = document.getElementById("history-list");
 const apiPreview = document.getElementById("api-preview");
 const copyCurlButton = document.getElementById("copy-curl");
 
 const state = {
+  mode: "single",
   history: [],
   currentAudioUrl: "",
 };
 
 const setStatus = (message, tone = "neutral") => {
   statusText.textContent = message;
-  statusText.classList.remove("error", "ok");
-  if (tone === "error") {
-    statusText.classList.add("error");
-  }
+  statusText.classList.remove("ok", "error");
   if (tone === "ok") {
     statusText.classList.add("ok");
+  }
+  if (tone === "error") {
+    statusText.classList.add("error");
   }
 };
 
@@ -59,25 +73,92 @@ const formatRelative = (isoTime) => {
     return "just now";
   }
 
-  const deltaSec = Math.floor((Date.now() - stamp.getTime()) / 1000);
-  if (deltaSec < 45) {
+  const delta = Math.floor((Date.now() - stamp.getTime()) / 1000);
+  if (delta < 45) {
     return "just now";
   }
-  if (deltaSec < 3600) {
-    return `${Math.round(deltaSec / 60)}m ago`;
+  if (delta < 3600) {
+    return `${Math.round(delta / 60)}m ago`;
   }
-  if (deltaSec < 86400) {
-    return `${Math.round(deltaSec / 3600)}h ago`;
+  if (delta < 86400) {
+    return `${Math.round(delta / 3600)}h ago`;
   }
-  return `${Math.round(deltaSec / 86400)}d ago`;
+  return `${Math.round(delta / 86400)}d ago`;
 };
 
-const updateTextMetrics = () => {
-  const raw = textInput.value.trim();
-  const chars = raw.length;
+const updateSingleMetrics = () => {
+  const text = textInput.value.trim();
+  const chars = text.length;
   const sec = chars === 0 ? 0 : Math.max(1, Math.round(chars / 14));
   charsCount.textContent = `${chars} chars`;
   estimate.textContent = `~${sec} sec`;
+};
+
+const updateBatchMetrics = () => {
+  const rows = batchTextInput.value
+    .split("\n")
+    .map((row) => row.trim())
+    .filter(Boolean);
+  const charTotal = rows.reduce((sum, row) => sum + row.length, 0);
+  batchLines.textContent = `${rows.length} lines`;
+  batchChars.textContent = `${charTotal} chars`;
+};
+
+const currentPayload = () => {
+  if (state.mode === "single") {
+    return {
+      text: textInput.value,
+      voice: voiceSelect.value || undefined,
+      rate: Number.parseInt(rateInput.value, 10),
+      pitch: Number.parseInt(pitchInput.value, 10),
+      format: "mp3",
+    };
+  }
+
+  const texts = batchTextInput.value
+    .split("\n")
+    .map((row) => row.trim())
+    .filter(Boolean)
+    .slice(0, 20);
+
+  return {
+    texts,
+    voice: voiceSelect.value || undefined,
+    rate: Number.parseInt(rateInput.value, 10),
+    pitch: Number.parseInt(pitchInput.value, 10),
+    format: "mp3",
+  };
+};
+
+const renderApiPreview = () => {
+  if (state.mode === "single") {
+    const payload = currentPayload();
+    apiPreview.textContent = `curl -X POST ${window.location.origin}/api/speak \\
+  -H "Content-Type: application/json" \\
+  -d '${JSON.stringify(payload, null, 2)}'`;
+    return;
+  }
+
+  const payload = currentPayload();
+  apiPreview.textContent = `curl -X POST ${window.location.origin}/api/speak/batch \\
+  -H "Content-Type: application/json" \\
+  -d '${JSON.stringify(payload, null, 2)}'`;
+};
+
+const applyMode = (mode) => {
+  state.mode = mode;
+
+  modeSingleButton.classList.toggle("active", mode === "single");
+  modeSingleButton.setAttribute("aria-selected", mode === "single" ? "true" : "false");
+
+  modeBatchButton.classList.toggle("active", mode === "batch");
+  modeBatchButton.setAttribute("aria-selected", mode === "batch" ? "true" : "false");
+
+  singleEditor.classList.toggle("active", mode === "single");
+  batchEditor.classList.toggle("active", mode === "batch");
+
+  submitButton.textContent = mode === "single" ? "Generate" : "Generate Batch";
+  renderApiPreview();
 };
 
 const buildVoiceQuery = () => {
@@ -95,23 +176,6 @@ const buildVoiceQuery = () => {
 
   params.set("limit", "300");
   return params.toString();
-};
-
-const selectedPayload = () => {
-  return {
-    text: textInput.value,
-    voice: voiceSelect.value || undefined,
-    rate: Number.parseInt(rateInput.value, 10),
-    pitch: Number.parseInt(pitchInput.value, 10),
-    format: "mp3",
-  };
-};
-
-const updateApiPreview = () => {
-  const payload = selectedPayload();
-  apiPreview.textContent = `curl -X POST ${window.location.origin}/api/speak \\
-  -H "Content-Type: application/json" \\
-  -d '${JSON.stringify(payload, null, 2)}'`;
 };
 
 const populateVoiceSelect = (voices, preferred = "") => {
@@ -132,8 +196,8 @@ const populateVoiceSelect = (voices, preferred = "") => {
     voiceSelect.append(option);
   }
 
-  const stillExists = voices.some((voice) => voice.short_name === preferred);
-  voiceSelect.value = stillExists ? preferred : voices[0].short_name;
+  const exists = voices.some((voice) => voice.short_name === preferred);
+  voiceSelect.value = exists ? preferred : voices[0].short_name;
 };
 
 const loadVoices = async () => {
@@ -141,7 +205,6 @@ const loadVoices = async () => {
   const query = buildVoiceQuery();
   const url = query ? `/api/voices?${query}` : "/api/voices";
 
-  setStatus("Loading voices...");
   const response = await fetch(url);
   if (!response.ok) {
     throw new Error(`Failed to load voices (${response.status})`);
@@ -152,11 +215,12 @@ const loadVoices = async () => {
   loadedVoices.textContent = `${voices.length} voices`;
 
   if (!voices.length) {
-    setStatus("No voices match your filter.", "error");
+    setStatus("No voices match filters.", "error");
   } else {
     setStatus(`Loaded ${voices.length} voices.`, "ok");
   }
-  updateApiPreview();
+
+  renderApiPreview();
 };
 
 const renderPresets = (presets) => {
@@ -178,19 +242,70 @@ const loadPresets = async () => {
   if (!response.ok) {
     throw new Error("Failed to load presets");
   }
+
   const presets = await response.json();
   renderPresets(presets);
 };
 
-const setCurrentOutput = (item, message) => {
+const setCurrentOutput = (item, message = "") => {
   resultPanel.classList.remove("empty");
   resultMeta.textContent = `${item.voice} · ${item.locale} · ${item.characters} chars · ${formatRelative(item.created_at)}`;
   audioPlayer.src = item.audio_url;
   downloadLink.href = item.audio_url;
   state.currentAudioUrl = new URL(item.audio_url, window.location.origin).href;
+
   if (message) {
     setStatus(message, "ok");
   }
+};
+
+const renderBatchReport = (batchResult) => {
+  if (!batchResult) {
+    batchReport.innerHTML = "";
+    batchReport.classList.add("hidden");
+    return;
+  }
+
+  const summary = document.createElement("p");
+  summary.className = "batch-summary";
+  summary.textContent = `Batch finished in ${batchResult.duration_ms}ms. Success ${batchResult.success}/${batchResult.total}.`;
+
+  const list = document.createElement("ul");
+  list.className = "batch-list";
+
+  for (const item of batchResult.items) {
+    const li = document.createElement("li");
+    li.className = "batch-item";
+
+    const badge = document.createElement("span");
+    badge.className = `badge ${item.success ? "ok" : "fail"}`;
+    badge.textContent = item.success ? "OK" : "FAILED";
+
+    const preview = document.createElement("div");
+    preview.textContent = `${item.index + 1}. ${item.text_preview}`;
+
+    li.append(badge, preview);
+
+    if (item.success && item.result) {
+      const audioLink = document.createElement("a");
+      audioLink.href = item.result.audio_url;
+      audioLink.download = `${item.result.id}.mp3`;
+      audioLink.textContent = "Download";
+      li.append(audioLink);
+    }
+
+    if (!item.success && item.error) {
+      const error = document.createElement("div");
+      error.textContent = item.error;
+      li.append(error);
+    }
+
+    list.append(li);
+  }
+
+  batchReport.innerHTML = "";
+  batchReport.append(summary, list);
+  batchReport.classList.remove("hidden");
 };
 
 const renderHistory = () => {
@@ -199,7 +314,7 @@ const renderHistory = () => {
   if (!state.history.length) {
     const empty = document.createElement("li");
     empty.className = "history-item";
-    empty.textContent = "No renders yet. Generate your first clip.";
+    empty.textContent = "No renders yet.";
     historyList.append(empty);
     return;
   }
@@ -210,11 +325,11 @@ const renderHistory = () => {
 
     const top = document.createElement("div");
     top.className = "history-top";
-    const voiceName = document.createElement("strong");
-    voiceName.textContent = item.voice;
-    const relative = document.createElement("span");
-    relative.textContent = formatRelative(item.created_at);
-    top.append(voiceName, relative);
+    const left = document.createElement("strong");
+    left.textContent = item.voice;
+    const right = document.createElement("span");
+    right.textContent = formatRelative(item.created_at);
+    top.append(left, right);
 
     const meta = document.createElement("div");
     meta.className = "history-meta";
@@ -223,30 +338,30 @@ const renderHistory = () => {
     const actions = document.createElement("div");
     actions.className = "history-actions";
 
-    const playBtn = document.createElement("button");
-    playBtn.type = "button";
-    playBtn.dataset.action = "play";
-    playBtn.dataset.id = item.id;
-    playBtn.textContent = "Play";
+    const play = document.createElement("button");
+    play.type = "button";
+    play.dataset.action = "play";
+    play.dataset.id = item.id;
+    play.textContent = "Play";
 
-    const downloadAnchor = document.createElement("a");
-    downloadAnchor.href = item.audio_url;
-    downloadAnchor.download = `${item.id}.mp3`;
-    downloadAnchor.textContent = "Download";
+    const download = document.createElement("a");
+    download.href = item.audio_url;
+    download.download = `${item.id}.mp3`;
+    download.textContent = "Download";
 
-    const copyBtn = document.createElement("button");
-    copyBtn.type = "button";
-    copyBtn.dataset.action = "copy";
-    copyBtn.dataset.id = item.id;
-    copyBtn.textContent = "Copy Link";
+    const copy = document.createElement("button");
+    copy.type = "button";
+    copy.dataset.action = "copy";
+    copy.dataset.id = item.id;
+    copy.textContent = "Copy";
 
-    const deleteBtn = document.createElement("button");
-    deleteBtn.type = "button";
-    deleteBtn.dataset.action = "delete";
-    deleteBtn.dataset.id = item.id;
-    deleteBtn.textContent = "Delete";
+    const remove = document.createElement("button");
+    remove.type = "button";
+    remove.dataset.action = "delete";
+    remove.dataset.id = item.id;
+    remove.textContent = "Delete";
 
-    actions.append(playBtn, downloadAnchor, copyBtn, deleteBtn);
+    actions.append(play, download, copy, remove);
     li.append(top, meta, actions);
     historyList.append(li);
   }
@@ -257,6 +372,7 @@ const loadHistory = async () => {
   if (!response.ok) {
     throw new Error("Failed to load history");
   }
+
   state.history = await response.json();
   renderHistory();
   historyCount.textContent = `${state.history.length} renders`;
@@ -273,38 +389,78 @@ const loadStats = async () => {
   totalChars.textContent = `${stats.total_characters} chars`;
 };
 
-const copyText = async (text) => {
-  await navigator.clipboard.writeText(text);
+const copyText = async (value) => {
+  await navigator.clipboard.writeText(value);
+};
+
+const generateSingle = async () => {
+  const payload = currentPayload();
+  if (!payload.text.trim()) {
+    throw new Error("Please enter a script.");
+  }
+
+  const response = await fetch("/api/speak", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.detail || "Generation failed");
+  }
+
+  setCurrentOutput(data);
+  renderBatchReport(null);
+  await Promise.all([loadHistory(), loadStats()]);
+  setStatus(`Generated with ${data.voice}.`, "ok");
+};
+
+const generateBatch = async () => {
+  const payload = currentPayload();
+  if (!payload.texts.length) {
+    throw new Error("Batch mode requires at least one non-empty line.");
+  }
+
+  const response = await fetch("/api/speak/batch", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.detail || "Batch generation failed");
+  }
+
+  renderBatchReport(data);
+
+  const firstSuccess = data.items.find((item) => item.success && item.result);
+  if (firstSuccess?.result) {
+    setCurrentOutput(firstSuccess.result);
+  }
+
+  await Promise.all([loadHistory(), loadStats()]);
+
+  if (data.failed > 0) {
+    setStatus(`Batch completed with ${data.failed} failed item(s).`, "error");
+  } else {
+    setStatus(`Batch completed successfully (${data.success}/${data.total}).`, "ok");
+  }
 };
 
 form.addEventListener("submit", async (event) => {
   event.preventDefault();
 
-  const payload = selectedPayload();
-  if (!payload.text.trim()) {
-    setStatus("Please enter a script first.", "error");
-    return;
-  }
-
   submitButton.disabled = true;
-  setStatus("Generating speech...");
+  setStatus(state.mode === "single" ? "Generating..." : "Generating batch...");
 
   try {
-    const response = await fetch("/api/speak", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(payload),
-    });
-
-    const data = await response.json();
-    if (!response.ok) {
-      throw new Error(data.detail || "TTS request failed");
+    if (state.mode === "single") {
+      await generateSingle();
+    } else {
+      await generateBatch();
     }
-
-    setCurrentOutput(data, `Generated with ${data.voice}.`);
-    await Promise.all([loadHistory(), loadStats()]);
   } catch (error) {
     setStatus(error.message || "Generation failed", "error");
   } finally {
@@ -320,25 +476,33 @@ const reloadVoicesDebounced = debounce(async () => {
   }
 });
 
-searchInput.addEventListener("input", reloadVoicesDebounced);
-localeInput.addEventListener("input", reloadVoicesDebounced);
-genderSelect.addEventListener("change", reloadVoicesDebounced);
-voiceSelect.addEventListener("change", updateApiPreview);
+modeSingleButton.addEventListener("click", () => applyMode("single"));
+modeBatchButton.addEventListener("click", () => applyMode("batch"));
+
+textInput.addEventListener("input", () => {
+  updateSingleMetrics();
+  renderApiPreview();
+});
+
+batchTextInput.addEventListener("input", () => {
+  updateBatchMetrics();
+  renderApiPreview();
+});
 
 rateInput.addEventListener("input", () => {
   rateValue.textContent = `${rateInput.value}%`;
-  updateApiPreview();
+  renderApiPreview();
 });
 
 pitchInput.addEventListener("input", () => {
   pitchValue.textContent = `${pitchInput.value}Hz`;
-  updateApiPreview();
+  renderApiPreview();
 });
 
-textInput.addEventListener("input", () => {
-  updateTextMetrics();
-  updateApiPreview();
-});
+voiceSelect.addEventListener("change", renderApiPreview);
+searchInput.addEventListener("input", reloadVoicesDebounced);
+localeInput.addEventListener("input", reloadVoicesDebounced);
+genderSelect.addEventListener("change", reloadVoicesDebounced);
 
 refreshVoicesButton.addEventListener("click", async () => {
   refreshVoicesButton.disabled = true;
@@ -351,27 +515,50 @@ refreshVoicesButton.addEventListener("click", async () => {
   }
 });
 
-presetsContainer.addEventListener("click", (event) => {
-  const target = event.target;
-  if (!(target instanceof HTMLElement)) {
-    return;
-  }
+resetFiltersButton.addEventListener("click", async () => {
+  searchInput.value = "";
+  localeInput.value = "";
+  genderSelect.value = "";
+  await loadVoices();
+});
 
-  if (!target.classList.contains("preset-chip")) {
+clearButton.addEventListener("click", () => {
+  if (state.mode === "single") {
+    textInput.value = "";
+    updateSingleMetrics();
+  } else {
+    batchTextInput.value = "";
+    updateBatchMetrics();
+  }
+  renderApiPreview();
+  setStatus("Input cleared.", "ok");
+});
+
+presetsContainer.addEventListener("click", async (event) => {
+  const target = event.target;
+  if (!(target instanceof HTMLElement) || !target.classList.contains("preset-chip")) {
     return;
   }
 
   const presetText = target.dataset.text || "";
   const presetLocale = target.dataset.locale || "";
-  textInput.value = presetText;
-  if (presetLocale) {
-    localeInput.value = presetLocale;
-    reloadVoicesDebounced();
+
+  if (state.mode === "single") {
+    textInput.value = presetText;
+    updateSingleMetrics();
+  } else {
+    const current = batchTextInput.value.trim();
+    batchTextInput.value = current ? `${current}\n${presetText}` : presetText;
+    updateBatchMetrics();
   }
 
-  updateTextMetrics();
-  updateApiPreview();
-  setStatus(`Loaded preset: ${target.textContent || "script"}.`, "ok");
+  if (presetLocale) {
+    localeInput.value = presetLocale;
+    await loadVoices();
+  }
+
+  renderApiPreview();
+  setStatus(`Preset loaded: ${target.textContent || "template"}.`, "ok");
 });
 
 historyList.addEventListener("click", async (event) => {
@@ -393,7 +580,7 @@ historyList.addEventListener("click", async (event) => {
   }
 
   if (action === "play") {
-    setCurrentOutput(item, "Loaded clip from history.");
+    setCurrentOutput(item, "Loaded from history.");
     return;
   }
 
@@ -402,7 +589,7 @@ historyList.addEventListener("click", async (event) => {
       await copyText(new URL(item.audio_url, window.location.origin).href);
       setStatus("Audio link copied.", "ok");
     } catch {
-      setStatus("Failed to copy audio link.", "error");
+      setStatus("Copy failed.", "error");
     }
     return;
   }
@@ -414,7 +601,6 @@ historyList.addEventListener("click", async (event) => {
       if (!response.ok) {
         throw new Error(payload.detail || "Delete failed");
       }
-
       await Promise.all([loadHistory(), loadStats()]);
       setStatus("History item deleted.", "ok");
     } catch (error) {
@@ -425,7 +611,7 @@ historyList.addEventListener("click", async (event) => {
 
 copyLinkButton.addEventListener("click", async () => {
   if (!state.currentAudioUrl) {
-    setStatus("Generate or select an item first.", "error");
+    setStatus("No active output to copy.", "error");
     return;
   }
 
@@ -440,15 +626,16 @@ copyLinkButton.addEventListener("click", async () => {
 copyCurlButton.addEventListener("click", async () => {
   try {
     await copyText(apiPreview.textContent || "");
-    setStatus("cURL snippet copied.", "ok");
+    setStatus("cURL copied.", "ok");
   } catch {
     setStatus("Copy failed.", "error");
   }
 });
 
 const initialize = async () => {
-  updateTextMetrics();
-  updateApiPreview();
+  updateSingleMetrics();
+  updateBatchMetrics();
+  renderApiPreview();
 
   try {
     await Promise.all([loadPresets(), loadVoices(), loadHistory(), loadStats()]);
@@ -457,7 +644,7 @@ const initialize = async () => {
     }
     setStatus("Studio ready.", "ok");
   } catch (error) {
-    setStatus(error.message || "Failed to initialize studio", "error");
+    setStatus(error.message || "Failed to initialize", "error");
   }
 };
 

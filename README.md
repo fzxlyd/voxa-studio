@@ -9,11 +9,12 @@ Open-source text-to-speech starter inspired by [jamiepine/voicebox](https://gith
 This project gives you a deployable baseline with:
 
 - FastAPI backend
-- Studio-grade browser UI with branded design system
-- MP3 generation endpoint
+- Studio-grade browser UI with dual generation modes
+- Single + batch MP3 generation endpoints
 - Voice search/filter (`search`, `locale`, `gender`, `limit`)
 - Preset script templates
 - Persistent render history (replay / copy link / delete)
+- Batch report panel (success/failure per line)
 - Runtime stats panel
 - Docker support
 - GitHub Actions CI
@@ -31,6 +32,7 @@ This project gives you a deployable baseline with:
 - `DELETE /api/history/{id}` delete a history record and audio file
 - `GET /api/stats` aggregate counters for dashboard
 - `POST /api/speak` synthesize speech and store history
+- `POST /api/speak/batch` generate up to 20 lines in one request
 
 ## Stack
 
@@ -79,6 +81,20 @@ Response:
   "characters": 29,
   "text_preview": "Hello from Voxa Studio"
 }
+```
+
+Batch example:
+
+```bash
+curl -X POST http://127.0.0.1:8000/api/speak/batch \
+  -H "Content-Type: application/json" \
+  -d '{
+    "texts": ["First line", "Second line"],
+    "voice": "en-US-AriaNeural",
+    "rate": 0,
+    "pitch": 0,
+    "format": "mp3"
+  }'
 ```
 
 ## Run Tests

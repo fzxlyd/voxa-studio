@@ -3,114 +3,146 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="Voxa Studio - Open source text to speech studio" />
+    <meta name="description" content="Voxa Studio - polished open source text-to-speech workspace" />
     <title>Voxa Studio</title>
     <link rel="icon" type="image/svg+xml" href="/web/assets/favicon.svg" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Sora:wght@500;700;800&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Epilogue:wght@500;600;700;800&family=Instrument+Sans:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="/web/styles.css" />
   </head>
   <body>
-    <div class="ambient" aria-hidden="true"></div>
+    <div class="page-glow" aria-hidden="true"></div>
 
-    <main class="studio" aria-label="Voxa studio">
-      <section class="surface composer-surface">
-        <header class="brand-header">
-          <div class="brand-wrap">
-            <img src="/web/assets/logo.svg" alt="Voxa Studio logo" class="logo" />
-            <div>
-              <p class="eyebrow">OPEN SOURCE VOICE STUDIO</p>
-              <h1>Voxa Studio</h1>
-            </div>
-          </div>
-          <p class="subhead">Polished web TTS workspace with presets, smart voice filtering, and generation history.</p>
-        </header>
+    <header class="topbar">
+      <div class="brand-zone">
+        <img src="/web/assets/logo.svg" alt="Voxa Studio logo" class="logo" />
+        <div>
+          <p class="eyebrow">VOICE PRODUCTION WORKBENCH</p>
+          <h1>Voxa Studio</h1>
+        </div>
+      </div>
+      <p class="pitch">Design-quality UI + fast single and batch generation for creators and teams.</p>
+    </header>
 
-        <section aria-label="Quick presets" class="card">
+    <main class="layout" aria-label="Voxa workspace">
+      <section class="panel compose-panel" aria-label="Compose">
+        <div class="mode-tabs" role="tablist" aria-label="Generation mode">
+          <button id="mode-single" class="tab active" role="tab" aria-selected="true" type="button" data-mode="single">
+            Single Script
+          </button>
+          <button id="mode-batch" class="tab" role="tab" aria-selected="false" type="button" data-mode="batch">
+            Batch Lines
+          </button>
+        </div>
+
+        <section class="card presets-card" aria-label="Template presets">
           <div class="card-head">
-            <h2>Script Presets</h2>
+            <h2>Templates</h2>
+            <span class="card-note">Click to fill</span>
           </div>
           <div id="presets" class="preset-list" role="list"></div>
         </section>
 
-        <section aria-label="Composer" class="card">
-          <form id="tts-form" class="tts-form">
-            <div class="field-row">
-              <label for="text">Script</label>
-              <div class="meta-inline">
-                <span id="chars-count">0 chars</span>
-                <span id="estimate">~0 sec</span>
+        <section class="card editor-card" aria-label="Script editor">
+          <form id="tts-form" class="editor-form">
+            <div id="single-editor" class="editor-mode active" data-mode="single">
+              <div class="label-row">
+                <label for="text">Script</label>
+                <div class="inline-metrics">
+                  <span id="chars-count">0 chars</span>
+                  <span id="estimate">~0 sec</span>
+                </div>
               </div>
-            </div>
-            <textarea
-              id="text"
-              name="text"
-              rows="8"
-              maxlength="2000"
-              required
-              placeholder="Type your script here..."
-            ></textarea>
-
-            <div class="grid-2">
-              <div>
-                <label for="search">Voice Search</label>
-                <input id="search" name="search" type="text" maxlength="48" placeholder="aria, english, female..." />
-              </div>
-              <div>
-                <label for="locale">Locale</label>
-                <input id="locale" name="locale" type="text" maxlength="12" placeholder="en-US" />
-              </div>
+              <textarea
+                id="text"
+                rows="9"
+                maxlength="2000"
+                placeholder="Write the script you want to generate..."
+              ></textarea>
             </div>
 
-            <div class="grid-2">
-              <div>
-                <label for="gender">Gender</label>
-                <select id="gender" name="gender">
-                  <option value="">All</option>
-                  <option value="Female">Female</option>
-                  <option value="Male">Male</option>
-                </select>
+            <div id="batch-editor" class="editor-mode" data-mode="batch">
+              <div class="label-row">
+                <label for="batch-text">Batch Lines</label>
+                <div class="inline-metrics">
+                  <span id="batch-lines">0 lines</span>
+                  <span id="batch-chars">0 chars</span>
+                </div>
               </div>
-              <div>
-                <label for="voice">Voice</label>
-                <select id="voice" name="voice"></select>
+              <textarea
+                id="batch-text"
+                rows="9"
+                maxlength="20000"
+                placeholder="One script per line. Example:\nWelcome back to the channel.\nToday we have a quick launch update."
+              ></textarea>
+              <p class="tip">Up to 20 non-empty lines per batch request.</p>
+            </div>
+
+            <div class="voice-tools">
+              <div class="tool-grid">
+                <div>
+                  <label for="search">Voice Search</label>
+                  <input id="search" type="text" maxlength="48" placeholder="aria, chinese, male..." />
+                </div>
+                <div>
+                  <label for="locale">Locale</label>
+                  <input id="locale" type="text" maxlength="12" placeholder="en-US" />
+                </div>
+                <div>
+                  <label for="gender">Gender</label>
+                  <select id="gender">
+                    <option value="">All</option>
+                    <option value="Female">Female</option>
+                    <option value="Male">Male</option>
+                  </select>
+                </div>
+                <div>
+                  <label for="voice">Voice</label>
+                  <select id="voice"></select>
+                </div>
+              </div>
+              <div class="tool-actions">
+                <button id="refresh-voices" type="button" class="btn ghost">Refresh</button>
+                <button id="reset-filters" type="button" class="btn ghost">Reset Filters</button>
               </div>
             </div>
 
-            <div class="grid-2">
+            <div class="slider-grid">
               <div>
                 <label for="rate">Rate <span id="rate-value">0%</span></label>
-                <input id="rate" name="rate" type="range" min="-100" max="100" value="0" />
+                <input id="rate" type="range" min="-100" max="100" value="0" />
               </div>
               <div>
                 <label for="pitch">Pitch <span id="pitch-value">0Hz</span></label>
-                <input id="pitch" name="pitch" type="range" min="-50" max="50" value="0" />
+                <input id="pitch" type="range" min="-50" max="50" value="0" />
               </div>
             </div>
 
-            <div class="actions">
-              <button id="submit" type="submit" class="primary">Generate Voice</button>
-              <button id="refresh-voices" type="button" class="secondary">Refresh Voices</button>
+            <div class="primary-actions">
+              <button id="submit" type="submit" class="btn primary">Generate</button>
+              <button id="clear-input" type="button" class="btn ghost">Clear</button>
             </div>
           </form>
-          <p id="status" class="status" role="status" aria-live="polite">Loading voices...</p>
+
+          <p id="status" class="status" role="status" aria-live="polite">Initializing studio...</p>
         </section>
       </section>
 
-      <section class="surface monitor-surface">
-        <section class="card">
+      <section class="panel output-panel" aria-label="Output and history">
+        <section class="card output-card">
           <div class="card-head">
             <h2>Output</h2>
-            <div class="stats">
+            <div class="stats" aria-live="polite">
               <span id="loaded-voices">0 voices</span>
               <span id="history-count">0 renders</span>
               <span id="total-chars">0 chars</span>
             </div>
           </div>
+
           <div id="result" class="result empty">
             <p id="result-meta">Generate audio to preview here.</p>
             <audio id="audio-player" controls></audio>
@@ -119,16 +151,19 @@
               <button id="copy-link" type="button" class="link-btn">Copy Link</button>
             </div>
           </div>
+
+          <div id="batch-report" class="batch-report hidden" aria-live="polite"></div>
         </section>
 
-        <section class="card">
+        <section class="card history-card">
           <div class="card-head">
             <h2>Recent Renders</h2>
+            <span class="card-note">Latest 20</span>
           </div>
           <ul id="history-list" class="history-list" aria-label="Render history"></ul>
         </section>
 
-        <section class="card">
+        <section class="card api-card">
           <div class="card-head">
             <h2>API Preview</h2>
             <button id="copy-curl" type="button" class="link-btn">Copy cURL</button>
