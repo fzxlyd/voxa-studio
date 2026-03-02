@@ -9,8 +9,12 @@ Open-source text-to-speech starter inspired by [jamiepine/voicebox](https://gith
 This project gives you a deployable baseline with:
 
 - FastAPI backend
-- Browser UI for text input and voice selection
+- Studio-grade browser UI with branded design system
 - MP3 generation endpoint
+- Voice search/filter (`search`, `locale`, `gender`, `limit`)
+- Preset script templates
+- Persistent render history (replay / copy link / delete)
+- Runtime stats panel
 - Docker support
 - GitHub Actions CI
 
@@ -21,8 +25,12 @@ This project gives you a deployable baseline with:
 ## Demo Features
 
 - `GET /api/health` health check
-- `GET /api/voices` list voices (optional `locale` filter)
-- `POST /api/speak` synthesize speech and return audio URL
+- `GET /api/voices` list voices with filtering
+- `GET /api/presets` built-in script presets
+- `GET /api/history` list generation history
+- `DELETE /api/history/{id}` delete a history record and audio file
+- `GET /api/stats` aggregate counters for dashboard
+- `POST /api/speak` synthesize speech and store history
 
 ## Stack
 
@@ -62,10 +70,14 @@ Response:
 {
   "id": "...",
   "voice": "en-US-AriaNeural",
+  "locale": "en-US",
   "rate": 0,
   "pitch": 0,
   "format": "mp3",
-  "audio_url": "/audio/<id>.mp3"
+  "audio_url": "/audio/<id>.mp3",
+  "created_at": "2026-03-02T07:00:00Z",
+  "characters": 29,
+  "text_preview": "Hello from Voicebox Open Lite"
 }
 ```
 

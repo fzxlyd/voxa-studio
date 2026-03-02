@@ -3,58 +3,138 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Voicebox Open Lite - Open source text to speech studio" />
     <title>Voicebox Open Lite</title>
+    <link rel="icon" type="image/svg+xml" href="/web/assets/favicon.svg" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Sora:wght@500;700;800&display=swap"
+      rel="stylesheet"
+    />
     <link rel="stylesheet" href="/web/styles.css" />
   </head>
   <body>
-    <div class="backdrop"></div>
-    <main class="shell">
-      <section class="panel">
-        <header>
-          <p class="badge">Open Source Starter</p>
-          <h1>Voicebox Open Lite</h1>
-          <p class="subtitle">A fast, deployable TTS project inspired by voicebox.</p>
+    <div class="ambient" aria-hidden="true"></div>
+
+    <main class="studio" aria-label="Voicebox studio">
+      <section class="surface composer-surface">
+        <header class="brand-header">
+          <div class="brand-wrap">
+            <img src="/web/assets/logo.svg" alt="Voicebox Open Lite logo" class="logo" />
+            <div>
+              <p class="eyebrow">OPEN SOURCE VOICE STUDIO</p>
+              <h1>Voicebox Open Lite</h1>
+            </div>
+          </div>
+          <p class="subhead">Polished web TTS workspace with presets, smart voice filtering, and generation history.</p>
         </header>
 
-        <form id="tts-form">
-          <label for="text">Text</label>
-          <textarea id="text" name="text" rows="6" maxlength="1000" required placeholder="Type what you want to speak..."></textarea>
-
-          <div class="row">
-            <div>
-              <label for="voice">Voice</label>
-              <select id="voice" name="voice"></select>
-            </div>
-            <div>
-              <label for="locale">Locale Filter</label>
-              <input id="locale" name="locale" type="text" placeholder="en-US" maxlength="10" />
-            </div>
+        <section aria-label="Quick presets" class="card">
+          <div class="card-head">
+            <h2>Script Presets</h2>
           </div>
-
-          <div class="row sliders">
-            <div>
-              <label for="rate">Rate: <span id="rate-value">0</span>%</label>
-              <input id="rate" name="rate" type="range" min="-100" max="100" value="0" />
-            </div>
-            <div>
-              <label for="pitch">Pitch: <span id="pitch-value">0</span>Hz</label>
-              <input id="pitch" name="pitch" type="range" min="-50" max="50" value="0" />
-            </div>
-          </div>
-
-          <button id="submit" type="submit">Generate Audio</button>
-        </form>
-
-        <section id="result" class="result hidden">
-          <p class="result-title">Output</p>
-          <audio id="audio-player" controls></audio>
-          <a id="download" download="voicebox-output.mp3">Download MP3</a>
+          <div id="presets" class="preset-list" role="list"></div>
         </section>
 
-        <p id="status" class="status">Loading voices...</p>
+        <section aria-label="Composer" class="card">
+          <form id="tts-form" class="tts-form">
+            <div class="field-row">
+              <label for="text">Script</label>
+              <div class="meta-inline">
+                <span id="chars-count">0 chars</span>
+                <span id="estimate">~0 sec</span>
+              </div>
+            </div>
+            <textarea
+              id="text"
+              name="text"
+              rows="8"
+              maxlength="2000"
+              required
+              placeholder="Type your script here..."
+            ></textarea>
+
+            <div class="grid-2">
+              <div>
+                <label for="search">Voice Search</label>
+                <input id="search" name="search" type="text" maxlength="48" placeholder="aria, english, female..." />
+              </div>
+              <div>
+                <label for="locale">Locale</label>
+                <input id="locale" name="locale" type="text" maxlength="12" placeholder="en-US" />
+              </div>
+            </div>
+
+            <div class="grid-2">
+              <div>
+                <label for="gender">Gender</label>
+                <select id="gender" name="gender">
+                  <option value="">All</option>
+                  <option value="Female">Female</option>
+                  <option value="Male">Male</option>
+                </select>
+              </div>
+              <div>
+                <label for="voice">Voice</label>
+                <select id="voice" name="voice"></select>
+              </div>
+            </div>
+
+            <div class="grid-2">
+              <div>
+                <label for="rate">Rate <span id="rate-value">0%</span></label>
+                <input id="rate" name="rate" type="range" min="-100" max="100" value="0" />
+              </div>
+              <div>
+                <label for="pitch">Pitch <span id="pitch-value">0Hz</span></label>
+                <input id="pitch" name="pitch" type="range" min="-50" max="50" value="0" />
+              </div>
+            </div>
+
+            <div class="actions">
+              <button id="submit" type="submit" class="primary">Generate Voice</button>
+              <button id="refresh-voices" type="button" class="secondary">Refresh Voices</button>
+            </div>
+          </form>
+          <p id="status" class="status" role="status" aria-live="polite">Loading voices...</p>
+        </section>
+      </section>
+
+      <section class="surface monitor-surface">
+        <section class="card">
+          <div class="card-head">
+            <h2>Output</h2>
+            <div class="stats">
+              <span id="loaded-voices">0 voices</span>
+              <span id="history-count">0 renders</span>
+              <span id="total-chars">0 chars</span>
+            </div>
+          </div>
+          <div id="result" class="result empty">
+            <p id="result-meta">Generate audio to preview here.</p>
+            <audio id="audio-player" controls></audio>
+            <div class="output-actions">
+              <a id="download" download="voicebox-output.mp3" href="#">Download MP3</a>
+              <button id="copy-link" type="button" class="link-btn">Copy Link</button>
+            </div>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="card-head">
+            <h2>Recent Renders</h2>
+          </div>
+          <ul id="history-list" class="history-list" aria-label="Render history"></ul>
+        </section>
+
+        <section class="card">
+          <div class="card-head">
+            <h2>API Preview</h2>
+            <button id="copy-curl" type="button" class="link-btn">Copy cURL</button>
+          </div>
+          <pre id="api-preview" class="api-preview"></pre>
+        </section>
       </section>
     </main>
 

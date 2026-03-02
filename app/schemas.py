@@ -6,7 +6,7 @@ from pydantic import BaseModel, Field, field_validator
 
 
 class SpeakRequest(BaseModel):
-    text: str = Field(min_length=1, max_length=1000)
+    text: str = Field(min_length=1, max_length=2000)
     voice: str | None = None
     rate: int = Field(default=0, ge=-100, le=100)
     pitch: int = Field(default=0, ge=-50, le=50)
@@ -24,10 +24,14 @@ class SpeakRequest(BaseModel):
 class SpeakResponse(BaseModel):
     id: str
     voice: str
+    locale: str
     rate: int
     pitch: int
     format: Literal["mp3"]
     audio_url: str
+    created_at: str
+    characters: int
+    text_preview: str
 
 
 class VoiceOption(BaseModel):
@@ -35,3 +39,23 @@ class VoiceOption(BaseModel):
     display_name: str
     locale: str
     gender: str | None = None
+
+
+class PresetItem(BaseModel):
+    id: str
+    title: str
+    locale: str
+    text: str
+
+
+class HistoryItem(BaseModel):
+    id: str
+    voice: str
+    locale: str
+    rate: int
+    pitch: int
+    format: Literal["mp3"]
+    audio_url: str
+    created_at: str
+    characters: int
+    text_preview: str
